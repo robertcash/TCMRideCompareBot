@@ -66,7 +66,7 @@ def results_handler(messenger_parser, user):
     if not result['success']:
         send_message(user.messenger_id, 'Something wrong happened, try again!')
     else:
-        send_message(user.messenger_id, result['winner'] + ' is cheaper! It costs $' + str(result['cost']) + '!')
+        send_message(user.messenger_id, result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!')
 
     # Change the user state to ask_start so the next time the user sends a message, it starts the process over again.
     user.state = 'ask_start'
