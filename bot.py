@@ -69,9 +69,9 @@ def results_handler(messenger_parser, user):
         # With winner, dictate deep link for user to click to open the app with the ride on their phone
         winner = result['winner'].capitalize()
         if winner == 'Uber':
-            deep_link = 'uber://?action=setPickup&pickup[latitude]=' + user.start_lat + '&pickup[longitude]=' + user.start_lng + '&dropoff[latitude]=' + end_coordinates[0] + '&dropoff[longitude]=' + end_coordinates[1]
+            deep_link = 'uber://?action=setPickup&pickup[latitude]=' + str(user.start_lat) + '&pickup[longitude]=' + str(user.start_lng) + '&dropoff[latitude]=' + str(end_coordinates[0]) + '&dropoff[longitude]=' + str(end_coordinates[1])
         else:
-            deep_link = 'lyft://ridetype?id=lyft&pickup[latitude]=' + user.start_lat + '&pickup[longitude]=' + user.start_lng + '&destination[latitude]=' + end_coordinates[0] + '&destination[longitude]=' + end_coordinates[1]
+            deep_link = 'lyft://ridetype?id=lyft&pickup[latitude]=' + str(user.start_lat) + '&pickup[longitude]=' + str(user.start_lng) + '&destination[latitude]=' + str(end_coordinates[0]) + '&destination[longitude]=' + str(end_coordinates[1])
 
         message_to_send = winner + ' is cheaper! It costs $' + str(result['cost']) + '! Tap here to call your ride: ' + deep_link
         send_message(user.messenger_id, message_to_send)
