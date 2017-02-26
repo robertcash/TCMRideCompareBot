@@ -66,7 +66,15 @@ def results_handler(messenger_parser, user):
     if not result['success']:
         send_message(user.messenger_id, 'Something wrong happened, try again!')
     else:
-        send_message(user.messenger_id, result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!')
+        # With winner, dictate deep link for user to click to open the app with the ride on their phone
+        winner = result['winner'].capitalize()
+        if winner == 'Uber':
+            deep_link = 'uber://?action=setPickup&pickup[latitude]=' + user.start_lat + '&pickup[longitude]=' + user.start_lng + '&dropoff[latitude]=' + end_coordinates[0] + '&dropoff[longitude]=' + end_coordinates[1]
+        else:
+            deep_link = 'lyft://ridetype?id=lyft&pickup[latitude]=' + user.start_lat + '&pickup[longitude]=' + user.start_lng + '&destination[latitude]=' + end_coordinates[0] + '&destination[longitude]=' + end_coordinates[1]
+
+        message_to_send = winner + ' is cheaper! It costs $' + str(result['cost']) + '! Tap here to call your ride: ' + deep_link
+        send_message(user.messenger_id, message_to_send)
 
     # Change the user state to ask_start so the next time the user sends a message, it starts the process over again.
     user.state = 'ask_start'
