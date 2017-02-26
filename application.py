@@ -23,7 +23,7 @@ def after_request(response):
 def hello_world():
     return 'Hello World! Nothing is broken!'
 
-@application.route('/webhook')
+@application.route('/webhook', methods=['GET', 'POST'])
 def webhook():
     try:
         if request.method == 'GET':
