@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, g, Response,render_template
 from peewee import *
 import bot
 import db
+import os
 
 # Setup
 application = Flask(__name__)
