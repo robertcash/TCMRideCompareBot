@@ -66,7 +66,7 @@ def results_handler(messenger_parser, user):
     if not result['success']:
         send_message(user.messenger_id, 'Something wrong happened, try again!')
     else:
-        message_to_send = result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!' uber://?action=setPickup&pickup[latitude]=\(self.startLat!)&pickup[longitude]=\(self.startLng!)&dropoff[latitude]=\(self.endLat!)&dropoff[longitude]=\(self.endLng!)"
+        message_to_send = result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!' 
         send_message(user.messenger_id, message_to_send)
 
     # Change the user state to ask_start so the next time the user sends a message, it starts the process over again.
