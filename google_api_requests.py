@@ -15,7 +15,7 @@ def get_coordinates(place_name, user):
     }
 
     # Send GET request to Google.
-    r = requests.get(GOOGLE_TRANSLATE_URL, params=params)
+    r = requests.get(GOOGLE_PLACES_URL, params=params)
 
     try:
         end_lat = r.json()['results'][0]['geometry']['location']['lat']
