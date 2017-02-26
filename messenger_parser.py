@@ -15,7 +15,7 @@ class MessengerParser:
         # Check if the message body has an attachment, this means we are receiving coordinates (https://developers.facebook.com/docs/messenger-platform/send-api-reference/quick-replies)
         self.lat = 0
         self.lng = 0
-        if message.get('attachments'):
+        if 'attachments' in message:
             attachments = message['attachments']
             coordinates = attachments[0]['payload']['coordinates']
             self.lat = coordinates['lat']
