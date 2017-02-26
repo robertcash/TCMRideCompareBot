@@ -30,7 +30,7 @@ def send_coordinates_message(messenger_id, text):
     }
     params = {
         'recipient':recipient,
-        'messages':message
+        'message':message
     }
 
     # Send POST request to Facebook Messenger Send API to send coordinates message
