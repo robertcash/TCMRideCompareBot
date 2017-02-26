@@ -61,6 +61,6 @@ def compare(start_lat, start_lng, end_lat, end_lng):
 
     if lyft_cost > uber_cost:
         # Uber is cheaper
-        return {'success':True, 'winner':'uber', 'cost':uber_low}
+        return {'success':True, 'winner':'uber', 'cost':uber_cost}
 
-    return {'success':True, 'winner':'lyft', 'cost':lyft_low}
+    return {'success':True, 'winner':'lyft', 'cost':lyft_cost}
