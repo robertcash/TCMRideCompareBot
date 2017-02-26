@@ -4,5 +4,6 @@ itsdangerous==0.24
 Jinja2==2.9.5
 MarkupSafe==0.23
 peewee==2.8.7
+PyMySQL==0.7.10
 requests==2.13.0
 Werkzeug==0.11.15
