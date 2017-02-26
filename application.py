@@ -11,7 +11,10 @@ database = db.database
 # Opens a connection to our database when we receive a request and closes it after the request
 @application.before_request
 def before_request():
-    database.connect()
+    try:
+        database.connect()
+    except:
+        pass
 
 @application.after_request
 def after_request(response):
