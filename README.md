@@ -111,7 +111,7 @@ We are given the message data from the user in the form of JSON. JSON in layman'
 In bot.py, this line of code:
 
 ```
-received_message = MessengerParser(request)
+messenger_parser = MessengerParser(request)
 ```
 
 creates an object called MessengerParser that does this when we pass it the JSON, in the form of a Python dictionary, in the variable "request".
