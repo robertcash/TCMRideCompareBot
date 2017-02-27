@@ -50,13 +50,13 @@ def compare(start_lat, start_lng, end_lat, end_lng):
     uber_cost = sys.maxint
 
     for estimate in lyft_cost_estimates:
+        lyft_cost = min(lyft_cost, (estimate['estimated_cost_cents_min']/100))
         if estimate['ride_type'] == 'lyft':
-            lyft_cost = (estimate['estimated_cost_cents_min']/100)
             break
 
     for estimate in uber_cost_estimates:
+        uber_cost = min(uber_cost, estimate['low_estimate'])
         if estimate['display_name'] == 'uberX':
-            uber_cost = estimate['low_estimate']
             break
 
     if lyft_cost > uber_cost:
