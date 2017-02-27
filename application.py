@@ -18,7 +18,10 @@ def before_request():
 
 @application.after_request
 def after_request(response):
-    database.close()
+    try:
+        database.close()
+    except:
+        pass
     return response
 
 # Our typical routes
