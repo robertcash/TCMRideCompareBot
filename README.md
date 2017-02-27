@@ -37,6 +37,7 @@ This bot has multiple files and is structured as followed:
 - messenger_api_requests.py - this file contains a function that sends text back to the user who sent the message in the first place.
 - compare_api.py - this file contains a function to that sends all location data to Lyft and Uber API's to their cost estimate endpoints and does a comparison in price between both rideshare companies.
 - helpers.py - this file contains a helper function that creates a success response. This is used by bot.py when the bots task is done so Facebook's request to our bot is completed.
+- db.py - this file contains the classes and setup needed to talk to our MySQL database. This project just has one object table and that is User.
 - Procfile and requirements.txt - these files are just used by Heroku to run your app so you can ignore them. requirements.txt just tells Heroku what dependencies your application needs and the Procfile tells Heroku what file to run.
 
 ### Bot Creation Steps
@@ -212,7 +213,7 @@ For reference, here is how the JSON really looks like:
 }    
 ```
 
-After we get our data and our messenger_id, we then need to grab the user associated by it from our database so we can get the last action the user did. The user could be brand new so we must make a new user in the database corresponding to the given messenger_id if that's the case:
+After we get our data and our messenger_id, we then need to grab the user associated by it from our database so we can get the last action the user did. The user could be brand new so we must make a new user in the MySQL database corresponding to the given messenger_id if that's the case. This is done with a simple MySQL query where we either create a User entity in our User object table with our received messenger_id and the default starting state for our bot or select from our User object table where the user messenger_id is equal to the messenger_id we got from our request from Facebook.
 
 ```
 try:
@@ -274,11 +275,12 @@ def send_coordinates_message(messenger_id, text):
 
 As you can you see after sending our message, we convert the user to the next state "ask_end" so when the user next messages the bot, they will be in the step where they provide where they want to go.
 
-In the next state, we receive the coordinates from our message_parser and we save it to our user object in our database so we can refer to it later when we do the comparisons because variables with network requests aren't saved from request to request in a regular running program. We do this with these lines:
+In the next state, we receive the coordinates from our message_parser and we save it to our user object in our MySQL database so we can refer to it later when we do the comparisons because variables with network requests aren't saved from request to request in a regular running program. We do this with these lines:
 
 ```
   user.start_lat = messenger_parser.lat
   user.start_lng = messenger_parser.lng
+  user.save()
 ```
 
 Our user object saves the following things as seen in db.py:
