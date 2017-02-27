@@ -1,7 +1,7 @@
-# RideCompareBot
+# TCMRideCompareBot
 
 
-RideCompareBot is a tutorial Messenger bot created for the Think Code Make class at Goizueta Business School at Emory University. It is written in Python 3 using the Flask web framework.
+TCMRideCompareBot is a tutorial Messenger bot created for the Think Code Make class at Goizueta Business School at Emory University. It is written in Python 3 using the Flask web framework.
 
 Messenger Bots are chatbots that can answer messages to your Facebook page. They're like mini-apps you can message in Messenger that can serve users without having to be downloaded. Technical-wise, they are server-side applications with one webhook. Facebook sends requests to this webhook every time a user messages your bot. Your application does it's job (i.e.: sending a translated message to the user) and then it completes Facebook's request with a response.
 
