@@ -10,6 +10,7 @@ Messenger Bots are chatbots that can answer messages to your Facebook page. They
   - A Messenger bot that finds out if Lyft or Uber is cheaper given a start and end destination.
   - Google Places API, Lyft API, and Uber API.
   - Deployment of server-side applications to Heroku.
+  - Simple use of MySQL.
 
 ### Installation Setup
 
