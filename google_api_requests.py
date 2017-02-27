@@ -2,7 +2,7 @@
 import requests
 
 # Constants
-GOOGLE_API_KEY = 'AIzaSyAbz66cAEx6EEcpBD6qvvATmob8cs4_cTE'
+GOOGLE_API_KEY = 'YOUR KEY HERE'
 GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/textsearch/json'
 
 def get_coordinates(place_name, user):

@@ -2,7 +2,7 @@
 import requests
 
 # Constants
-FB_ACCESS_TOKEN = 'EAACXghObtBQBALrHEnLhGlFV6mXVsk97rJS9bZAWFZC7UqOhgU7GYCYUHBbW3iF7hHohyPsvnGy6OTlc55k7ZCLcuMjsphVAuq0qZAtZAbiAXclxyfTGvKEYNtpZB9WE3qHNAWsHyv5PNY1OeRKNe2Umf0NWNdNroqTAK1aOGZAtwZDZD'
+FB_ACCESS_TOKEN = 'YOUR ACCESS TOKEN HERE'
 SEND_API_URL = 'https://graph.facebook.com/v2.6/me/messages?access_token=' + FB_ACCESS_TOKEN
 
 def send_message(messenger_id, text):

@@ -1,9 +1,9 @@
 import requests
 import sys
 
-LYFT_KEY = 'gAAAAABYokyuGHWk_AwoIHEWyUzD3yOALEEc42SOHcOJxJMXLwEDBAZjKerONfOJ6-tUwCrlTF2cCouY-4C3u3BL_SVCh1IR4SeNOoOkFYIIvmF0_eTtIxkQBrKtRnhMQMG474Lk_OBVHYjfWovOYxiRzU9CjfIqVzB8DawVeyReKv40AzwtVl8='
+LYFT_KEY = 'YOUR KEY HERE'
 LYFT_URL = 'https://api.lyft.com/v1/cost'
-UBER_KEY = 'FT-zL9tcvqiSWPqonMx2wLBfs_guAd3gC1H4szCi'
+UBER_KEY = 'YOUR KEY HERE'
 UBER_URL = 'https://api.uber.com/v1.2/estimates/price'
 
 '''

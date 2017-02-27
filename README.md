@@ -211,57 +211,227 @@ For reference, here is how the JSON really looks like:
 }    
 ```
 
-After we get our text, we then need to send that text to Google's translation API. We do this with the following line of code:
+After we get our data and our messenger_id, we then need to grab the user associated by it from our database so we can get the last action the user did. The user could be brand new so we must make a new user in the database corresponding to the given messenger_id if that's the case:
 
 ```
-# Uses translate_message function in google_api_requests.py to translate user message
-    translation = translate_message(received_message.text, TARGET_LANGUAGE)
+try:
+      user = User.select().where(User.messenger_id == messenger_parser.messenger_id).get()
+  except:
+      # If user doesn't exist, we create them. This would be a first time user.
+      user = User.create(messenger_id=messenger_parser.messenger_id, state='ask_start')
 ```
 
-In that line, we are calling the translate_message function we imported from google_api_requests.py. We are passing the text property of the received_message variable along with a defined constant at the top of the file that contains a language code for the target language we want to translate to.
-
-In that function, we send a GET request to Google's Translation API with a packet of our own JSON that contains the needed data to get the translation. After we send the request, we check if it was a successful request (If the status code is 200, that means it was successful), and if it is, we grab data from the JSON Google sent us just like we did with Facebook to get our translated text.
+Once we either make a new user or grab our existing user, we need to check what state they were in when they last messaged the bot. There's three possible states in our bot, "ask_start" (a state where the user is asked their current location), "ask_end" (a state where the user provides where they want to go), and "give_result" (a state where the result is given). Each state has its own function that is called in bot.py to handle them.
 
 ```
-def translate_message(text, target_lang):
-    # Package params into dictionary for GET request.
+# Here we need to decide what we need to do next for our user
+  if user.state == 'ask_start':
+      # We need to ask our user where they are.
+      start_handler(user)
+  elif user.state == 'ask_end':
+      # We need to ask our user where they are going.
+      end_handler(messenger_parser, user)
+  else:
+      # We got all our information from our user and now we check what rideshare is cheaper and give results.
+      results_handler(messenger_parser, user)
+```
+
+If the user is in the "ask_start" state, we must send them a special message that allows them to send their location. This is done here:
+
+```
+def start_handler(user):
+    # Send coordinates message to receive the user's current location
+    send_coordinates_message(user.messenger_id, 'What\'s your current location?')
+
+    # Change the user state to ask_end so the next time the user sends a message, it asks for where they want to go.
+    user.state = 'ask_end'
+    user.save()
+```
+
+and specifically this function in messenger_api_requests.py:
+
+```
+def send_coordinates_message(messenger_id, text):
+    # Package params into dictionaries for POST request
+    recipient = {'id':messenger_id}
+    message = {
+        'text':text,
+        'quick_replies':[
+            {
+                'content_type':'location'
+            }
+        ]
+    }
     params = {
-        'key':GOOGLE_API_KEY,
-        'q': text,
-        'source': 'en',
-        'target': target_lang
+        'recipient':recipient,
+        'message':message
     }
 
-    # Send POST request to Google.
-    r = requests.get(GOOGLE_TRANSLATE_URL, params=params)
-
-    # Check if success, if success, return translated text. If not, return error message.
-    if r.status_code != 200:
-        return 'Something wrong happened, try again later!'
-
-    translated_text = r.json()['data']['translations'][0]['translatedText']
-    return translated_text
+    # Send POST request to Facebook Messenger Send API to send coordinates message
+    r = requests.post(SEND_API_URL, json=params)
 ```
 
-This is how the translated text JSON that Google sends us looks like:
+As you can you see after sending our message, we convert the user to the next state "ask_end" so when the user next messages the bot, they will be in the step where they provide where they want to go.
+
+In the next state, we receive the coordinates from our message_parser and we save it to our user object in our database so we can refer to it later when we do the comparisons because variables with network requests aren't saved from request to request in a regular running program. We do this with these lines:
 
 ```
-{
-  "data": {
-    "translations": [
-      {
-        "translatedText": "Olá Mundo!"
-      }
-    ]
-  }
-}
+  user.start_lat = messenger_parser.lat
+  user.start_lng = messenger_parser.lng
 ```
 
-Now the only task left is for our bot to actually send the translated text to the user so they can see it in their Messenger thread. This is done with this line in bot.py:
+Our user object saves the following things as seen in db.py:
 
 ```
-# Uses send_message function in messenger_parser.py to send translated message back to user
-    send_message(received_message.messenger_id, translation)
+# This is our User object with all the attributes it saves
+class User(BaseModel):
+    user_id = PrimaryKeyField(db_column='user_id')
+    messenger_id = CharField(db_column='messenger_id', null=True)
+    state = CharField(db_column='state', null=True)
+    start_lat = FloatField(db_column='start_lat', null=True)
+    start_lng = FloatField(db_column='start_lng', null=True)
+
+    class Meta:
+        db_table = 'User'
+```
+
+Here's the rest of the code for end handler:
+
+```
+def end_handler(messenger_parser, user):
+    # Get user location coordinates from message
+    user.start_lat = messenger_parser.lat
+    user.start_lng = messenger_parser.lng
+
+    # Send message asking where the user wants to go
+    send_message(user.messenger_id, 'Where do you want to go?')
+
+    # Change the user state to give_result so the next time the user sends a message, it gives what rideshare is cheaper.
+    user.state = 'give_result'
+    user.save()
+```
+
+We change our state to "give_result" so when the user does put where they want to go, it will then trigger the comparison between Lyft and Uber.
+
+In result_handler, we need to convert the user text to coordinates, this is done with the Google Places API. We also need to do our comparisons, which is done with the Lyft and Uber APIs.
+
+```
+def results_handler(messenger_parser, user):
+    # Use Google Places API to get the coordinates of the address/business the user gives.
+    end_coordinates = get_coordinates(messenger_parser.text, user)
+
+    # Check if coordinate retrieval was a success. If not send message asking location again.
+    if end_coordinates[0] == 0 and end_coordinates[1] == 0:
+        send_message(user.messenger_id, 'Where do you want to go?')
+        return
+
+    # Now that we have all the coordinates needed, run code to compare prices using both Lyft and Uber API's.
+    result = compare(user.start_lat, user.start_lng, end_coordinates[0], end_coordinates[1])
+
+    # Send results back in a message to the user if comparison is successful. If not, send error.
+    if not result['success']:
+        send_message(user.messenger_id, 'Something wrong happened, try again!')
+    else:
+        message_to_send = result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!'
+        send_message(user.messenger_id, message_to_send)
+
+    # Change the user state to ask_start so the next time the user sends a message, it starts the process over again.
+    user.state = 'ask_start'
+    user.save()
+```
+
+To get our coordinates, we are call the get_coordinates function we imported from google_api_requests.py. We are passing the text property of the messenger_parser variable to get our coordinates.
+
+In that function, we send a GET request to Google's Places API with a packet of our own data that contains the needed data to get the translation. After we send the request, we check if it was a successful request (If the status code is 200, that means it was successful), and if it is, we grab data from the JSON Google sent us just like we did with Facebook to get our translated text.
+
+```
+def get_coordinates(place_name, user):
+    # Package params into dictionary for GET request (Ref: https://developers.google.com/places/web-service/search#PlaceSearchResponses)
+    params = {
+        'key':GOOGLE_API_KEY,
+        'query':place_name,
+        'location':str(user.start_lat) + ',' + str(user.start_lng),
+        'radius':35000
+    }
+
+    # Send GET request to Google.
+    r = requests.get(GOOGLE_PLACES_URL, params=params)
+
+    try:
+        end_lat = r.json()['results'][0]['geometry']['location']['lat']
+        end_lng = r.json()['results'][0]['geometry']['location']['lng']
+    except:
+        # If request didn't work or there was no results, send error coordinate back.
+        return (0,0)
+
+    # Return end coordinates in a tuple
+    return (end_lat, end_lng)
+```
+
+Now the only task left is for our bot to actually do the comparison of what is cheaper by giving our start and end coordinates to both the Lyft and Uber API's cost estimators. This is done with the compare function imported from the compare_api.py file:
+
+```
+def compare(start_lat, start_lng, end_lat, end_lng):
+    # Create params for API requests to Lyft and Uber
+    lyft_params = {
+        'start_lat':start_lat,
+        'start_lng':start_lng,
+        'end_lat':end_lat,
+        'end_lng':end_lng
+    }
+    lyft_headers = {
+        'Authorization':'bearer ' + LYFT_KEY
+    }
+    uber_params = {
+        'start_latitude':start_lat,
+        'start_longitude':start_lng,
+        'end_latitude':end_lat,
+        'end_longitude':end_lng
+    }
+    uber_headers = {
+        'Authorization':'Token ' + UBER_KEY
+    }
+
+    # Do API Requests to Lyft and Uber
+    lyft_request = requests.get(LYFT_URL, params=lyft_params, headers=lyft_headers)
+    uber_request = requests.get(UBER_URL, params=uber_params, headers=uber_headers)
+
+    # Check if both requests were succesful
+    if lyft_request.status_code != 200 or uber_request.status_code != 200:
+        return {'success':False}
+
+    # Get estimates from both requests
+    lyft_cost_estimates = lyft_request.json()['cost_estimates']
+    uber_cost_estimates = uber_request.json()['prices']
+
+    # Check to see what is cheaper and send it back to the user
+    lyft_cost = sys.maxint
+    uber_cost = sys.maxint
+
+    for estimate in lyft_cost_estimates:
+        if estimate['ride_type'] == 'lyft':
+            lyft_cost = (estimate['estimated_cost_cents_min']/100)
+            break
+
+    for estimate in uber_cost_estimates:
+        if estimate['display_name'] == 'uberX':
+            uber_cost = estimate['low_estimate']
+            break
+
+    if lyft_cost > uber_cost:
+        # Uber is cheaper
+        return {'success':True, 'winner':'uber', 'cost':uber_cost}
+
+    return {'success':True, 'winner':'lyft', 'cost':lyft_cost}
+```
+
+We create our packets of data to send to Lyft and Uber in lyft_params and uber_params variables. We then make our request and go through the results. We must loop through all the results we received as both Lyft and Uber offer different kind of cars. We are specifically comparing regular Lyfts and Ubers so we run through all the estimates until we get the ride type of "lyft" and the display_name of "uberX" for Uber. Once we have both of those, we compare the cost in total dollar amount. The winner is then sent back to our results_handler function with the winner name and cost in a dictionary.
+
+Lastly, we send the result to our user.
+
+```
+  message_to_send = result['winner'].capitalize() + ' is cheaper! It costs $' + str(result['cost']) + '!'
+  send_message(user.messenger_id, message_to_send)
 ```
 
 The line above calls the send_message function we imported from messenger_api_requests.py with the messenger_id property from received_message and the translation. The function itself does something similar to the translate_message function, but instead of sending a GET request to Google, it sends a POST request to Facebook's Messenger Bot API.
@@ -278,6 +448,14 @@ def send_message(messenger_id, text):
 
     # Send POST request to Facebook Messenger Send API to send text message
     r = requests.post(SEND_API_URL, json=params)
+```
+
+The last few lines of our results_handler resets the user state to the beginning so they can give us another starting location for the next time they use our bot.
+
+```
+  # Change the user state to ask_start so the next time the user sends a message, it starts the process over again.
+  user.state = 'ask_start'
+  user.save()
 ```
 
 You may be wondering what's the difference between GET and POST at this point. They're both HTTP request methods, but GET requests data from a server while POST submits data to a server. As you may have noticed, we sent data to a URL each time we used this, and that is because you can use both of these methods to do both of the jobs I've mentioned. It's just good practice to use GET when requesting data and POST for when you're sending data to be stored or processed for the sake of standardization. One advantage POST has is that the data sent through POST can be encrypted while with GET it's open for the world to see.
@@ -319,7 +497,11 @@ GOOGLE_API_KEY = 'YOUR API KEY HERE'
 
 #### 2. Getting the Lyft API Key
 
+Go to https://www.lyft.com/developers and click on manage apps in the top right corner of the page. Select "Create App" after logging in then enter all the necessary details. You then should taken to your app page, click on "show credentials" and copy and paste the client token to compare_api.py to the LYFT_KEY variable.
+
 #### 3. Getting the Uber API Key
+
+Go to https://developer.uber.com. Press sign in the top right and select "New App" once you login. Leave the selection on Ride API and fill in the necessary details. After that you should be on your app page. Copy and paste the "server token" to compare_api.py to the UBER_KEY variable.
 
 #### 4. Getting a Facebook Page Access Token
 We need an access token to send messages to the bot connected with our Page, but first we need a page. Go to your regular Facebook and create a page, this is all you have to do for this step, it's pretty simple.
@@ -332,7 +514,11 @@ Now you should have an access token, go copy and paste this at this line of code
 FB_ACCESS_TOKEN = 'YOUR ACCESS TOKEN HERE'
 ```
 
-#### 5. Getting a Amazon RDS Setup
+#### 5. Getting a Amazon RDS Setup along with your MySQL Database
+
+This part is the most annoying part of all the steps. If you've haven't already made an AWS account as directed to at the beginning of the tutorial, please do so now.
+
+THIS PART IS UNDER CONSTRUCTION
 
 #### 6. Deploying to Heroku
 

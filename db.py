@@ -1,7 +1,7 @@
 # Script that maps our database objects into easily usable classes in Python
 from peewee import *
 
-database = MySQLDatabase('ridecomparedb', **{'host': 'ridecompare.cblcihkzybe8.us-west-2.rds.amazonaws.com', 'password': '12345678', 'port': 3306, 'user': 'rcash'})
+database = MySQLDatabase('YOUR DB NAME HERE', **{'host': 'YOUR DB URL HERE', 'password': 'YOUR DB PASSWORD HERE', 'port': 3306, 'user': 'YOUR DB USERNAME HERE'})
 
 # Ignore this
 class UnknownField(object):
